@@ -37,7 +37,11 @@ module X
             nid     = options.delete(:nid)
             nested  = options.delete(:nested)
             title   = options.delete(:title) do
-              klass = nested ? object.class.const_get(nested.to_s.classify) : object.class
+              if nested
+                klass = nested.is_a?(Array) ? object.class.const_get(nested.last.keys.first.to_s.classify) : object.class.const_get(nested.keys.first.to_s.classify)
+              else
+                klass = object.class
+              end
               klass.human_attribute_name(method)
             end
 
@@ -54,7 +58,7 @@ module X
               type:   type,
               model:  model,
               name:   method,
-              value:  ( type == 'wysihtml5' ? Base64.encode64(output_value) : output_value ), 
+              value:  ( type == 'wysihtml5' ? Base64.encode64(output_value) : output_value ),
               placeholder: placeholder,
               classes: classes,
               source: source,
