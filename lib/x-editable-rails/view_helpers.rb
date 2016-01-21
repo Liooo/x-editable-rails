@@ -64,7 +64,8 @@ module X
               source: source,
               url:    url,
               nested: nested,
-              nid:    nid
+              nid:    nid,
+              container: options.delete(:container){ 'body' }
             }.merge(options.symbolize_keys)
 
             data.reject!{|_, value| value.nil?}
