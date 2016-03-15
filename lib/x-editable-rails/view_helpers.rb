@@ -27,7 +27,9 @@ module X
           url     = options.delete(:url){ polymorphic_path(object) }
           object  = object.last if object.kind_of?(Array)
           value   = options.delete(:value){ object.send(method) }
-          source  = options[:source] ? format_source(options.delete(:source), value) : default_source_for(value)
+          source  = options[:source] ?
+            (options[:source].is_a? String)? options.delete(:source) : format_source(options.delete(:source), value)
+            : default_source_for(value)
           classes = format_source(options.delete(:classes), value)
           error   = options.delete(:e)
           html_options = options.delete(:html){ Hash.new }
@@ -78,9 +80,13 @@ module X
 
             content_tag tag, html_options do
               if %w(select checklist).include? data[:type].to_s
-                source = normalize_source(source)
-                content = source.detect { |t| output_value == output_value_for(t[0]) }
-                content.present? ? content[1] : ""
+                if(source.is_a? String)
+                  content = value
+                else
+                  source = normalize_source(source)
+                  content = source.detect { |t| output_value == output_value_for(t[0]) }
+                  content.present? ? content[1] : ""
+                end
               else
                 safe_join(source_values_for(value, source), tag(:br))
               end
