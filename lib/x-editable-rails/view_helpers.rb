@@ -47,6 +47,13 @@ module X
               klass.human_attribute_name(method)
             end
 
+            if nested
+              err_obj = dig_nested_obj(object, nested)
+              attr_error = err_obj.errors[method]
+            else
+              attr_error = object.errors[method]
+            end
+
             output_value = output_value_for(value)
             css_list = options.delete(:class).to_s.split(/\s+/).unshift('editable')
             css_list << classes[output_value] if classes
@@ -67,6 +74,7 @@ module X
               url:    url,
               nested: nested,
               nid:    nid,
+              'attr-error' => attr_error.present? ? attr_error : nil,
               container: options.delete(:container){ 'body' }
             }.merge(options.symbolize_keys)
 
@@ -153,6 +161,33 @@ module X
           when TrueClass, FalseClass
             { '1' => 'Yes', '0' => 'No' }
           end
+        end
+
+        def dig_nested_obj(obj, nested)
+          case(nested)
+            when Array
+              err_obj = nested.inject(obj){|memo, n|
+                attr = n.keys.first
+                id = n.values.first
+                case(memo.class.reflect_on_association(attr))
+                  when ActiveRecord::Reflection::HasOneReflection
+                    memo = memo.send(attr)
+                  when ActiveRecord::Reflection::HasManyReflection
+                    memo = memo.send(attr).find_by(id: id)
+                end
+                memo
+              }
+            when Hash
+              attr = nested.keys.first
+              id = nested.values.first
+              err_obj = case(obj.class.reflect_on_association(attr))
+                when ActiveRecord::Reflection::HasOneReflection
+                  obj.send(attr)
+                when ActiveRecord::Reflection::HasManyReflection
+                  obj.send(attr).find_by(id: id)
+              end
+          end
+          return err_obj
         end
 
         # helper method that take some shorthand source definitions and reformats them
