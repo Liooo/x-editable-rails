@@ -26,18 +26,21 @@ module X
 
           url     = options.delete(:url){ polymorphic_path(object) }
           object  = object.last if object.kind_of?(Array)
-          value   = options.delete(:value){ object.send(method) }
+          nested  = options.delete(:nested)
+          deepest_obj = nested ? dig_nested_obj(object, nested) : object
+          attr_error = deepest_obj.errors[method]
+          value = options.delete(:value){ deepest_obj.send(method) }
+          value_type  = deepest_obj.class.columns_hash[method.to_s].type
           source  = options[:source] ?
-            (options[:source].is_a? String)? options.delete(:source) : format_source(options.delete(:source), value)
-            : default_source_for(value)
-          classes = format_source(options.delete(:classes), value)
+            (options[:source].is_a? String)? options.delete(:source) : format_source(options.delete(:source), value_type)
+            : default_source_for(value_type)
+          classes = format_source(options.delete(:classes), value_type)
           error   = options.delete(:e)
           html_options = options.delete(:html){ Hash.new }
 
           if xeditable?(object)
             model   = object.class.model_name.element
             nid     = options.delete(:nid)
-            nested  = options.delete(:nested)
             title   = options.delete(:title) do
               if nested
                 klass = nested.is_a?(Array) ? object.class.const_get(nested.last.keys.first.to_s.classify) : object.class.const_get(nested.keys.first.to_s.classify)
@@ -45,13 +48,6 @@ module X
                 klass = object.class
               end
               klass.human_attribute_name(method)
-            end
-
-            if nested
-              err_obj = dig_nested_obj(object, nested)
-              attr_error = err_obj.errors[method]
-            else
-              attr_error = object.errors[method]
             end
 
             output_value = output_value_for(value)
@@ -96,11 +92,11 @@ module X
                   content.present? ? content[1] : ""
                 end
               else
-                safe_join(source_values_for(value, source), tag(:br))
+                safe_join(source_values_for(value, value_type, source), tag(:br))
               end
             end
           else
-            error || safe_join(source_values_for(value, source), tag(:br))
+            error || safe_join(source_values_for(value, value_type, source), tag(:br))
           end
         end
 
@@ -133,8 +129,8 @@ module X
           value
         end
 
-        def source_values_for(value, source = nil)
-          source ||= default_source_for value
+        def source_values_for(value, value_type, source = nil)
+          source ||= default_source_for(value_type)
 
           values = Array.wrap(value)
 
@@ -156,9 +152,9 @@ module X
           end
         end
 
-        def default_source_for(value)
-          case value
-          when TrueClass, FalseClass
+        def default_source_for(value_type)
+          case value_type
+          when :boolean
             { '1' => 'Yes', '0' => 'No' }
           end
         end
@@ -191,13 +187,13 @@ module X
         end
 
         # helper method that take some shorthand source definitions and reformats them
-        def format_source(source, value)
-          formatted_source = case value
-            when TrueClass, FalseClass
+        def format_source(source, value_type)
+          formatted_source = case value_type
+            when :boolean
               if source.is_a?(Array) && source.first.is_a?(String) && source.size == 2
                 { '1' => source[0], '0' => source[1] }
               end
-            when String
+            when :string
               if source.is_a?(Array) && source.first.is_a?(String)
                 source.inject({}){|hash, key| hash.merge(key => key)}
               elsif source.is_a?(Hash)
