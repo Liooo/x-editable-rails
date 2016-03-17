@@ -169,7 +169,7 @@ module X
                   when ActiveRecord::Reflection::HasOneReflection
                     memo = memo.send(attr)
                   when ActiveRecord::Reflection::HasManyReflection
-                    memo = memo.send(attr).find_by(id: id)
+                    memo = memo.send(attr).detect{|o| o.id == id}
                 end
                 memo
               }
@@ -180,7 +180,7 @@ module X
                 when ActiveRecord::Reflection::HasOneReflection
                   obj.send(attr)
                 when ActiveRecord::Reflection::HasManyReflection
-                  obj.send(attr).find_by(id: id)
+                  obj.send(attr).detect{|o| o.id == id}
               end
           end
           return err_obj
