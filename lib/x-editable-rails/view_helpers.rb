@@ -194,8 +194,13 @@ module X
                 { '1' => source[0], '0' => source[1] }
               end
             when :string
-              if source.is_a?(Array) && source.first.is_a?(String)
-                source.inject({}){|hash, key| hash.merge(key => key)}
+              if source.is_a?(Array)
+                if source.first.is_a?(String)
+                  source.inject({}){|hash, key| hash.merge(key => key)}
+                elsif source.first.is_a?(Array) && source.first.size == 2
+                  # handle rails form helpers collection
+                  source.inject({}){|hash, key| hash.merge(key[1] => key[0])}
+                end
               elsif source.is_a?(Hash)
                 source
               end
