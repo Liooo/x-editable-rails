@@ -33,7 +33,7 @@ module X
           value_type  = deepest_obj.class.columns_hash[method.to_s].type
           source  = options[:source] ?
             (options[:source].is_a? String)? options.delete(:source) : format_source(options.delete(:source), value_type)
-            : default_source_for(value_type)
+            : ''
           classes = format_source(options.delete(:classes), value_type)
           error   = options.delete(:e)
           html_options = options.delete(:html){ Hash.new }
